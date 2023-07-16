@@ -1,0 +1,152 @@
+
+#This code is for internet gatway
+resource "aws_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id
+  #count = 3
+  
+  tags = {
+    Name = "internet_gateway" #s-${count.index}"
+    Terraform = "true"
+    Environment = "Dev"
+  }
+}
+# this code is for vpc
+resource "aws_vpc" "main" {
+  cidr_block       = "10.0.0.0/16"
+  instance_tenancy = "default"
+  enable_dns_support = "true"
+  enable_dns_hostnames = "true"
+  #count = 3
+  tags = {
+    Name = "test_vpc" #-${count.index}"
+    terraform = "true"
+    Environment = "Dev"
+  }
+}   
+#This code is for public subnet
+resource "aws_subnet" "public_subnet" {
+  vpc_id     = aws_vpc.main.id
+  cidr_block = "10.0.1.0/24"
+
+  tags = {
+    Name = "public_subnet"
+    Terraform = "true"
+    Environment = "Dev"
+  }
+}
+
+#This is for public rout table
+resource "aws_route_table" "public_route_table" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
+  }
+
+  #route {
+   # ipv6_cidr_block        = "::/0"
+   # egress_only_gateway_id = aws_egress_only_internet_gateway.example.id
+  #}
+
+  tags = {
+    Name = "public_rt"
+    Terraform = "true"
+    Environment = "DEV"
+  }
+}
+#this is for public assocition route table
+resource "aws_route_table_association" "public" {
+  subnet_id      = aws_subnet.public_subnet.id
+  route_table_id = aws_route_table.public_route_table.id
+}
+#This is for private subnet
+resource "aws_subnet" "private_subnet" {
+  vpc_id     = aws_vpc.main.id
+  cidr_block = "10.0.11.0/24"
+
+  tags = {
+    Name = "private_subnet"
+    Terraform = "true"
+    Environment = "Dev"
+  }
+}
+#private route table
+resource "aws_route_table" "private_route_table" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
+  }
+  tags = {
+    Name = "private-rt"
+    Terraform = "true"
+    Environment = "Dev"
+  }
+}
+#This is for private assocition route table
+resource "aws_route_table_association" "private" {
+  subnet_id      = aws_subnet.private_subnet.id
+  route_table_id = aws_route_table.private_route_table.id
+}
+#This code is for dtabase subnet
+resource "aws_subnet" "database_subnet" {
+  vpc_id     = aws_vpc.main.id
+  cidr_block = "10.0.21.0/24"
+
+  tags = {
+    Name = "database"
+    Terraform = "true"
+    Environment = "Dev"
+  }
+}
+#database route table
+resource "aws_route_table" "database_route_table" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
+  }
+  tags = {
+    Name = "database"
+    Terraform = "true"
+    Environment = "Dev"
+  }
+}
+#This is for database assocition route table
+resource "aws_route_table_association" "database" {
+  subnet_id      = aws_subnet.database_subnet.id
+  route_table_id = aws_route_table.database_route_table.id
+}
+#This for elastic ip
+resource "aws_eip" "nat" {
+   domain = "vpc"
+   tags = {
+    Name = "Eip"
+   }
+}
+#This is for nat gateway
+resource "aws_nat_gateway" "NAT_gw" {
+  allocation_id = aws_eip.nat.id
+  subnet_id     = aws_subnet.public_subnet.id
+
+  tags = {
+    Name = "NAT_gw"
+  }
+}
+# #This for private route nat gateway
+# resource "aws_route" "private" {
+#   route_table_id            = "aws_route_table.private_route_table.id"
+#   destination_cidr_block    = "0.0.0.0/0"
+#   nat_gateway_id = aws_nat_gateway.gw.id
+#   #depends_on                = ["aws_route_table.private"]
+# }
+# #This is for database route nat gateway
+# resource "aws_route" "datebase" {
+#   route_table_id            = "aws_route_table.database_route_table.id"
+#   destination_cidr_block    = "0.0.0.0/0"
+#   nat_gateway_id = aws_nat_gateway.gw.id
+#   #depends_on                = ["aws_route_table.database"]
+# }
